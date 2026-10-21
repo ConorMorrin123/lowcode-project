@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Submission Confirmed</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; text-align: center; }
+    .success-card { border: 1px solid #d4edda; background-color: #d4edda; color: #155724; padding: 20px; border-radius: 8px; }
+    .details { text-align: left; margin-top: 20px; background: #fff; padding: 15px; border-radius: 4px; border: 1px solid #ccc; }
+    a { display: inline-block; margin-top: 15px; color: #007bff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="success-card">
+    <h1>Thank You!</h1>
+    <p>Your message has been successfully received.</p>
+  </div>
+
+  <div class="details">
+    <h3>Submitted Details:</h3>
+    <p><strong>Name:</strong> {{ data.name }}</p>
+    <p><strong>Email:</strong> {{ data.email }}</p>
+    <p><strong>Message:</strong> {{ data.message }}</p>
+  </div>
+
+  <a href="/">← Back to Form</a>
+</body>
+</html>

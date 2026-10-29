@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<h1>Sign in</h1>
+<p class="muted">Enter your name and email. New here? We'll create your profile automatically.</p>
+<form method="post" class="card stack">
+  <label>Name
+    <input type="text" name="name" maxlength="200" required value="{{ form.get('name', '') }}">
+  </label>
+  <label>Email
+    <input type="email" name="email" required value="{{ form.get('email', '') }}">
+  </label>
+  <button type="submit">Continue</button>
+</form>
+{% endblock %}

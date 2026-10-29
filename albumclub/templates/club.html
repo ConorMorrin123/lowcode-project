@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ club['Name'] }}{% endblock %}
+{% block content %}
+<h1>{{ club['Name'] }}</h1>
+<p class="muted">Join code: <code>{{ club['JoinCode'] }}</code> · {{ members|length }} member{{ '' if members|length == 1 else 's' }}</p>
+
+<section>
+  <h2>Album of the week</h2>
+  {% if current %}
+    <div class="card highlight">
+      <h3><a href="{{ url_for('proposal_view', proposal_id=current['ProposalID']) }}">{{ current['Title'] }}</a></h3>
+      <p>{{ current['Artist'] }} · {{ current['Year'] }} · {{ current['Genre'] }}</p>
+      {% if current['Pitch'] %}<p class="pitch">“{{ current['Pitch'] }}”</p>{% endif %}
+      <p class="muted">
+        Proposed by {{ current['ProposerName'] }} ·
+        {% if current['ReviewCount'] %}
+          {{ '%.1f' % current['AvgRating'] }}/5 from {{ current['ReviewCount'] }} review{{ '' if current['ReviewCount'] == 1 else 's' }}
+        {% else %}No reviews yet{% endif %}
+      </p>
+      <a class="button" href="{{ url_for('proposal_view', proposal_id=current['ProposalID']) }}">Rate &amp; review</a>
+    </div>
+  {% else %}
+    <p class="muted">No album has been picked yet.</p>
+  {% endif %}
+</section>
+
+<section>
+  <div class="section-head">
+    <h2>Voting</h2>
+    <a class="button secondary" href="{{ url_for('propose', club_id=club['ClubID']) }}">Propose an album</a>
+  </div>
+  {% if approved %}
+    <ul class="list">
+      {% for p in approved %}
+        <li class="card">
+          <h3>{{ p['Title'] }}</h3>
+          <p>{{ p['Artist'] }} · {{ p['Year'] }} · {{ p['Genre'] }}</p>
+          {% if p['Pitch'] %}<p class="pitch">“{{ p['Pitch'] }}”</p>{% endif %}
+          <p class="muted">Proposed by {{ p['ProposerName'] }} · {{ p['Votes'] }} vote{{ '' if p['Votes'] == 1 else 's' }}</p>
+          {% if my_vote_id == p['ProposalID'] %}
+            <span class="badge">Your vote</span>
+          {% else %}
+            <form method="post" action="{{ url_for('vote', proposal_id=p['ProposalID']) }}">
+              <button type="submit">{{ 'Move my vote here' if my_vote_id else 'Vote' }}</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% if membership['Role'] == 'admin' %}
+      <form method="post" action="{{ url_for('close_voting', club_id=club['ClubID']) }}">
+        <button type="submit" class="danger">Close voting &amp; pick the winner</button>
+      </form>
+    {% endif %}
+  {% else %}
+    <p class="muted">Nothing is open for voting. Approved proposals appear here.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Awaiting approval</h2>
+  {% if pending %}
+    <ul class="list">
+      {% for p in pending %}
+        <li class="card">
+          <h3>{{ p['Title'] }}</h3>
+          <p>{{ p['Artist'] }} · {{ p['Year'] }} · {{ p['Genre'] }}</p>
+          {% if p['Pitch'] %}<p class="pitch">“{{ p['Pitch'] }}”</p>{% endif %}
+          <p class="muted">Proposed by {{ p['ProposerName'] }}</p>
+          {% if membership['Role'] == 'admin' %}
+            <div class="actions">
+              <form method="post" action="{{ url_for('proposal_status', proposal_id=p['ProposalID']) }}">
+                <input type="hidden" name="status" value="approved">
+                <button type="submit">Approve</button>
+              </form>
+              <form method="post" action="{{ url_for('proposal_status', proposal_id=p['ProposalID']) }}">
+                <input type="hidden" name="status" value="rejected">
+                <button type="submit" class="danger">Reject</button>
+              </form>
+            </div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No proposals waiting for approval.</p>
+  {% endif %}
+</section>
+
+{% if past %}
+<section>
+  <h2>Past albums</h2>
+  <ul class="list">
+    {% for p in past %}
+      <li class="card">
+        <a href="{{ url_for('proposal_view', proposal_id=p['ProposalID']) }}">{{ p['Title'] }}</a>
+        — {{ p['Artist'] }}
+        {% if p['ReviewCount'] %}<span class="badge">{{ '%.1f' % p['AvgRating'] }}/5</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section>
+  <h2>Members</h2>
+  <ul class="plain">
+    {% for m in members %}
+      <li>{{ m['Name'] }}{% if m['Role'] == 'admin' %} <span class="badge">Admin</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

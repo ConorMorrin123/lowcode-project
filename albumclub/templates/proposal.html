@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ proposal['Title'] }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('club_view', club_id=club['ClubID']) }}">← {{ club['Name'] }}</a></p>
+
+<div class="card highlight">
+  <h1>{{ proposal['Title'] }}</h1>
+  <p>{{ proposal['Artist'] }} · {{ proposal['Year'] }} · {{ proposal['Genre'] }}</p>
+  {% if proposal['Pitch'] %}<p class="pitch">“{{ proposal['Pitch'] }}”</p>{% endif %}
+  <p class="muted">
+    Proposed by {{ proposal['ProposerName'] }} · Status: {{ proposal['Status'] }}
+    {% if proposal['ReviewCount'] %}· {{ '%.1f' % proposal['AvgRating'] }}/5 from {{ proposal['ReviewCount'] }} review{{ '' if proposal['ReviewCount'] == 1 else 's' }}{% endif %}
+  </p>
+</div>
+
+{% if proposal['Status'] == 'won' %}
+<section>
+  <h2>{{ 'Edit your review' if mine else 'Your review' }}</h2>
+  <form method="post" action="{{ url_for('review', proposal_id=proposal['ProposalID']) }}" class="card stack">
+    <label>Rating
+      <select name="rating" required>
+        <option value="">Choose…</option>
+        {% for n in range(5, 0, -1) %}
+          <option value="{{ n }}" {{ 'selected' if mine and mine['Rating'] == n }}>{{ n }} / 5</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Comment (optional)
+      <textarea name="comment" maxlength="1000" rows="4">{{ mine['Comment'] if mine and mine['Comment'] else '' }}</textarea>
+    </label>
+    <button type="submit">Save review</button>
+  </form>
+</section>
+{% endif %}
+
+<section>
+  <h2>Reviews</h2>
+  {% if reviews %}
+    <ul class="list">
+      {% for r in reviews %}
+        <li class="card">
+          <strong>{{ r['Name'] }}</strong> <span class="badge">{{ r['Rating'] }}/5</span>
+          {% if r['Comment'] %}<p>{{ r['Comment'] }}</p>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No reviews yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

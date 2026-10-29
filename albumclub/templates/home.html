@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Your clubs{% endblock %}
+{% block content %}
+<h1>Your clubs</h1>
+<div class="actions">
+  <a class="button" href="{{ url_for('club_new') }}">Create a club</a>
+  <a class="button secondary" href="{{ url_for('club_join') }}">Join with a code</a>
+</div>
+
+{% if clubs %}
+  <ul class="list">
+    {% for c in clubs %}
+      <li class="card">
+        <a href="{{ url_for('club_view', club_id=c['ClubID']) }}">{{ c['Name'] }}</a>
+        {% if c['Role'] == 'admin' %}<span class="badge">Admin</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="muted">You're not in any clubs yet. Create one or join with a code.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Create a club{% endblock %}
+{% block content %}
+<h1>Create a club</h1>
+<form method="post" class="card stack">
+  <label>Club name
+    <input type="text" name="name" maxlength="200" required value="{{ form.get('name', '') }}">
+  </label>
+  <button type="submit">Create club</button>
+</form>
+<p class="muted">You'll become the club admin and get a join code to share.</p>
+{% endblock %}

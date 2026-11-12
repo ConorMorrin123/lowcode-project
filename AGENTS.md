@@ -13,12 +13,17 @@ visible only to its own members.
 - **How they connect:** User can have many memberships, admin memberships or not. A member can join many clubs. a member can vote on an album or many albums. A user can propose an album. A admin member can approve or not approve a album proposal. A member can review an a album after it has be approved.
 - **The full data model lives in:** `docs/data-model.md`. Treat it as the source of truth. If the code and that file disagree, stop and ask me.
 
-### Decisions I have made (the student fills this in, and keeps it up to date)
+### Decisions I have made 
 
 | Decision | What I chose | Why |
 |---|---|---|
-| Deleting a [PARENT] that still has [CHILDREN] | [RESTRICT / CASCADE / SET NULL] | [YOUR REASON IN PLAIN ENGLISH] |
-| [ANOTHER DECISION] | [WHAT YOU CHOSE] | [WHY] |
+
+| Deleting a Club that still has Users/Members | [ CASCADE ] | Once a club is deleted all records should be deleted as users data is under the club, username, passwords, records etc. Its good for privacy. |
+
+| If a User leaves a club | SET NULL | If a user leaves a club their records should stay as their records provide a history of the club. |
+
+| What happens when a user is deleted? Whta happens to  its membership? | CASCADE | If a users account is deleted then the membership has no link. That is why I think it should be deleted.  |
+| User data after leaving club | PERSISTANT | I think a users activity in teh club should be kept. |
 
 ## Technology
 

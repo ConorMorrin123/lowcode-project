@@ -1,85 +1,114 @@
-# Data model: [YOUR APP NAME]
+# Data model
 
-> Write this BEFORE you ask an AI to generate a schema, and commit it first.
-> Prompt 01 (`prompts/01-interview-me.md`) helps you draft it. You then correct it.
-> Everything in [SQUARE BRACKETS] is for you to replace.
+## Tables
 
-## The app in one sentence
+### user
+| Column | Required? | Rules |
+|---|---|---|
+| id | yes | primary key |
+| username | yes | UNIQUE |
+| email | yes | UNIQUE |
+| password_hash | yes | the password is stored scrambled, never as plain text |
+| profile_picture | yes | a stock picture; default is one fixed image path |
+| music_taste | no | short description of their music taste |
 
-[WHO uses it, to do WHAT. For example: "Club committee members use it to see who has borrowed which piece of equipment."]
+### club
+| Column | Required? | Rules |
+|---|---|---|
+| id | yes | primary key |
+| name | yes | UNIQUE |
+| description | yes | NOT NULL (every club must have a short description) |
+| invite_code | yes | UNIQUE |
+| privacy_setting | yes | CHECK in ('open', 'invite_only') |
+| changeover_day | yes | day the weekly album changes, CHECK in Monday to Sunday |
 
-## Entities (the things the app stores)
+### membership
+| Column | Required? | Rules |
+|---|---|---|
+| id | yes | primary key |
+| user_id | no | FK to user (can be emptied, see delete rules) |
+| club_id | yes | FK to club |
+| role | yes | CHECK in ('admin', 'member') |
+| status | yes | CHECK in ('pending', 'active', 'left') |
+| joined_at | yes | date joined, or date the request was made while pending |
 
-| Entity | One row means... |
-|---|---|
-| [entity_1] | [one ...] |
-| [entity_2] | [one ...] |
-| [entity_3] | [one ...] |
+UNIQUE (user_id, club_id): one membership per person per club.
 
-## Fields
+### album (each club has its own copy)
+| Column | Required? | Rules |
+|---|---|---|
+| id | yes | primary key |
+| club_id | yes | FK to club |
+| title | yes | |
+| artist | yes | |
+| genre | yes | |
+| release_year | no | |
+| cover_art_url | no | link to an image |
+| listening_url | no | link to Spotify, YouTube Music and so on |
 
-### [entity_1]
+### proposal
+| Column | Required? | Rules |
+|---|---|---|
+| id | yes | primary key |
+| club_id | yes | FK to club |
+| album_id | yes | FK to album |
+| proposed_by | no | FK to user (can be emptied) |
+| approved_by | no | FK to user, the admin who decided (can be emptied) |
+| status | yes | CHECK in ('pending', 'approved', 'rejected', 'winner'), default 'pending' |
+| week_start | yes | the week the proposal is for, so winner history is kept |
+| created_at | yes | |
 
-| Field | Type | Required? | Rules (constraints) | Example |
-|---|---|---|---|---|
-| id | INTEGER | yes | PRIMARY KEY | 1 |
-| [field] | TEXT / INTEGER / REAL | yes / no | [NOT NULL, UNIQUE, CHECK (...)] | [example value] |
+### vote
+| Column | Required? | Rules |
+|---|---|---|
+| id | yes | primary key |
+| club_id | yes | FK to club |
+| proposal_id | yes | FK to proposal |
+| user_id | no | FK to user (can be emptied) |
+| week_start | yes | |
+| created_at | yes | |
 
-### [entity_2]
+UNIQUE (user_id, club_id, week_start): one vote per member per club per week.
 
-| Field | Type | Required? | Rules (constraints) | Example |
-|---|---|---|---|---|
-| id | INTEGER | yes | PRIMARY KEY | 1 |
-| [field] | | | | |
+### review
+| Column | Required? | Rules |
+|---|---|---|
+| id | yes | primary key |
+| album_id | yes | FK to album |
+| user_id | no | FK to user (can be emptied) |
+| rating | yes | CHECK between 1 and 5 |
+| review_text | yes | editable by its author |
+| created_at / updated_at | yes | |
 
-### [entity_3]
-
-| Field | Type | Required? | Rules (constraints) | Example |
-|---|---|---|---|---|
-| id | INTEGER | yes | PRIMARY KEY | 1 |
-| [parent]_id | INTEGER | yes | FOREIGN KEY to [parent](id) | 1 |
-
-Tip: SQLite has no date type. Store dates as TEXT in the form `YYYY-MM-DD` so they sort and compare correctly.
+UNIQUE (album_id, user_id): one review per member per album, which they can edit.
 
 ## Relationships
+- A user has many memberships. A club has many memberships. (user and club: many-to-many, through membership)
+- A club has many albums, proposals and votes.
+- An album has one proposal per club's weekly round and many reviews.
+- A proposal has many votes. A user can propose many albums.
+- An admin membership approves or rejects proposals.
+- A member can review an album only after it has been approved (checked by the app, not the database)
 
-- One [parent] has many [children]. Each [child] belongs to exactly one [parent].
-- [ANOTHER RELATIONSHIP]
-
-## The delete rule (my decision, with my reason)
-
-If someone deletes a [parent] that still has [children]:
-
-- [ ] **RESTRICT**: block the delete. The [parent] stays until its [children] are dealt with.
-- [ ] **CASCADE**: delete the [children] too, silently.
-- [ ] **SET NULL**: keep the [children] but empty their link (the link column must then allow NULL).
-
-**I chose:** [RESTRICT / CASCADE / SET NULL]
-
-**Because:** [YOUR REASON, in business terms. Who would be upset if this went the other way?]
+## Delete rules
+| Deleting a... | That still has... | Rule | Reason |
+|---|---|---|---|
+| club | memberships, albums, proposals, votes, reviews | CASCADE | Once a club is deleted all records should be deleted as users data is under the club, username, passwords, records etc. Its good for privacy. |
+| user account | proposals, votes, reviews | SET NULL | If a user leaves a club their records should stay as their records provide a history of the club. |
+| user account | memberships | CASCADE (GUESS: please check, see below) | If a users account is deleted then the membership has no link. That is why I think it should be deleted. |
+| user leaving a club | everything they added | nothing is deleted: membership status becomes 'left' | Similar to before, I think a users activity in teh club should be kept. |
 
 ## Diagram
-
-Replace the names below with yours. GitHub draws this as a picture when you view the file.
-
 ```mermaid
 erDiagram
-    PARENT ||--o{ CHILD : "has"
-    PARENT {
-        int id PK
-        text name
-    }
-    CHILD {
-        int id PK
-        int parent_id FK
-        text title
-    }
+    USER ||--o{ MEMBERSHIP : has
+    CLUB ||--o{ MEMBERSHIP : has
+    CLUB ||--o{ ALBUM : owns
+    CLUB ||--o{ PROPOSAL : has
+    ALBUM ||--o{ PROPOSAL : "is proposed as"
+    USER ||--o{ PROPOSAL : proposes
+    PROPOSAL ||--o{ VOTE : receives
+    USER ||--o{ VOTE : casts
+    ALBUM ||--o{ REVIEW : receives
+    USER ||--o{ REVIEW : writes
 ```
-
-## What I changed after testing
-
-Fill this in as you go. It is great material for the "design decisions" section of your CA2 write-up.
-
-| Date | What I changed | Why (what testing showed me) |
-|---|---|---|
-| [DATE] | [CHANGE] | [REASON] |

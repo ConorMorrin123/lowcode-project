@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ proposal['title'] }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('club_view', club_id=club['id']) }}">← {{ club['name'] }}</a></p>
+
+<div class="card highlight">
+  <h1>{{ proposal['title'] }}</h1>
+  <p>{{ proposal['artist'] }}{% if proposal['release_year'] %} · {{ proposal['release_year'] }}{% endif %} · {{ proposal['genre'] }}</p>
+  {% if proposal['listening_url'] %}<p><a href="{{ proposal['listening_url'] }}" rel="noopener" target="_blank">Listen</a></p>{% endif %}
+  <p class="muted">
+    Proposed by {{ proposal['proposer_name'] or 'a former member' }} · Status: {{ proposal['status'] }}
+    {% if proposal['review_count'] %}· {{ '%.1f' % proposal['avg_rating'] }}/5 from {{ proposal['review_count'] }} review{{ '' if proposal['review_count'] == 1 else 's' }}{% endif %}
+  </p>
+</div>
+
+{% if can_review %}
+<section>
+  <h2>{{ 'Edit your review' if mine else 'Your review' }}</h2>
+  <form method="post" action="{{ url_for('review', proposal_id=proposal['id']) }}" class="card stack">
+    <label>Rating
+      <select name="rating" required>
+        <option value="">Choose…</option>
+        {% for n in range(5, 0, -1) %}
+          <option value="{{ n }}" {{ 'selected' if mine and mine['rating'] == n }}>{{ n }} / 5</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Review
+      <textarea name="review_text" maxlength="1000" rows="4" required>{{ mine['review_text'] if mine else '' }}</textarea>
+    </label>
+    <button type="submit">Save review</button>
+  </form>
+</section>
+{% endif %}
+
+<section>
+  <h2>Reviews</h2>
+  {% if reviews %}
+    <ul class="list">
+      {% for r in reviews %}
+        <li class="card">
+          <strong>{{ r['username'] or 'Former member' }}</strong> <span class="badge">{{ r['rating'] }}/5</span>
+          <p>{{ r['review_text'] }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No reviews yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

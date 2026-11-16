@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Propose an album{% endblock %}
+{% block content %}
+<h1>Propose an album</h1>
+<p class="muted">For <a href="{{ url_for('club_view', club_id=club['id']) }}">{{ club['name'] }}</a></p>
+<form method="post" class="card stack">
+  <label>Title
+    <input type="text" name="title" required value="{{ form.get('title', '') }}">
+  </label>
+  <label>Artist
+    <input type="text" name="artist" required value="{{ form.get('artist', '') }}">
+  </label>
+  <label>Genre
+    <input type="text" name="genre" required value="{{ form.get('genre', '') }}">
+  </label>
+  <label>Release year (optional)
+    <input type="number" name="release_year" min="1900" max="2100" value="{{ form.get('release_year', '') }}">
+  </label>
+  <label>Cover art link (optional)
+    <input type="url" name="cover_art_url" value="{{ form.get('cover_art_url', '') }}">
+  </label>
+  <label>Listening link, e.g. Spotify or YouTube Music (optional)
+    <input type="url" name="listening_url" value="{{ form.get('listening_url', '') }}">
+  </label>
+  <button type="submit">Submit proposal</button>
+</form>
+{% endblock %}

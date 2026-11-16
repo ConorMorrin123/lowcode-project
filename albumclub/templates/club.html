@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ club['name'] }}{% endblock %}
+{% block content %}
+<h1>{{ club['name'] }}</h1>
+<p>{{ club['description'] }}</p>
+<p class="muted">
+  Invite code: <code>{{ club['invite_code'] }}</code> ·
+  {{ 'Open' if club['privacy_setting'] == 'open' else 'Invite only' }} ·
+  Changes over every {{ club['changeover_day'] }} ·
+  {{ members|length }} member{{ '' if members|length == 1 else 's' }}
+</p>
+
+<section>
+  <h2>Album of the week</h2>
+  {% if current %}
+    <div class="card highlight">
+      <h3><a href="{{ url_for('proposal_view', proposal_id=current['id']) }}">{{ current['title'] }}</a></h3>
+      <p>{{ current['artist'] }}{% if current['release_year'] %} · {{ current['release_year'] }}{% endif %} · {{ current['genre'] }}</p>
+      <p class="muted">
+        Week of {{ current['week_start'] }} ·
+        Proposed by {{ current['proposer_name'] or 'a former member' }} ·
+        {% if current['review_count'] %}
+          {{ '%.1f' % current['avg_rating'] }}/5 from {{ current['review_count'] }} review{{ '' if current['review_count'] == 1 else 's' }}
+        {% else %}No reviews yet{% endif %}
+      </p>
+      <a class="button" href="{{ url_for('proposal_view', proposal_id=current['id']) }}">Rate &amp; review</a>
+    </div>
+  {% else %}
+    <p class="muted">No album has been picked yet.</p>
+  {% endif %}
+</section>
+
+<section>
+  <div class="section-head">
+    <h2>Voting (week of {{ week }})</h2>
+    <a class="button secondary" href="{{ url_for('propose', club_id=club['id']) }}">Propose an album</a>
+  </div>
+  {% if voting_closed %}
+    <p class="muted">This week's album has been picked. Voting opens again next {{ club['changeover_day'] }}.</p>
+  {% endif %}
+  {% if approved %}
+    <ul class="list">
+      {% for p in approved %}
+        <li class="card">
+          <h3><a href="{{ url_for('proposal_view', proposal_id=p['id']) }}">{{ p['title'] }}</a></h3>
+          <p>{{ p['artist'] }}{% if p['release_year'] %} · {{ p['release_year'] }}{% endif %} · {{ p['genre'] }}</p>
+          <p class="muted">Proposed by {{ p['proposer_name'] or 'a former member' }} · {{ p['votes'] }} vote{{ '' if p['votes'] == 1 else 's' }}</p>
+          {% if my_vote_id == p['id'] %}
+            <span class="badge">Your vote</span>
+          {% elif not voting_closed %}
+            <form method="post" action="{{ url_for('vote', proposal_id=p['id']) }}">
+              <button type="submit">{{ 'Move my vote here' if my_vote_id else 'Vote' }}</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% if membership['role'] == 'admin' and not voting_closed %}
+      <form method="post" action="{{ url_for('close_voting', club_id=club['id']) }}">
+        <button type="submit" class="danger">Close voting &amp; pick the winner</button>
+      </form>
+    {% endif %}
+  {% else %}
+    <p class="muted">Nothing is open for voting. Approved proposals appear here.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Awaiting approval</h2>
+  {% if pending %}
+    <ul class="list">
+      {% for p in pending %}
+        <li class="card">
+          <h3>{{ p['title'] }}</h3>
+          <p>{{ p['artist'] }}{% if p['release_year'] %} · {{ p['release_year'] }}{% endif %} · {{ p['genre'] }}</p>
+          <p class="muted">Proposed by {{ p['proposer_name'] or 'a former member' }}</p>
+          {% if membership['role'] == 'admin' %}
+            <div class="actions">
+              <form method="post" action="{{ url_for('proposal_status', proposal_id=p['id']) }}">
+                <input type="hidden" name="status" value="approved">
+                <button type="submit">Approve</button>
+              </form>
+              <form method="post" action="{{ url_for('proposal_status', proposal_id=p['id']) }}">
+                <input type="hidden" name="status" value="rejected">
+                <button type="submit" class="danger">Reject</button>
+              </form>
+            </div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No proposals waiting for approval.</p>
+  {% endif %}
+</section>
+
+{% if past %}
+<section>
+  <h2>Past albums</h2>
+  <ul class="list">
+    {% for p in past %}
+      <li class="card">
+        <a href="{{ url_for('proposal_view', proposal_id=p['id']) }}">{{ p['title'] }}</a>
+        — {{ p['artist'] }} <span class="muted">(week of {{ p['week_start'] }})</span>
+        {% if p['review_count'] %}<span class="badge">{{ '%.1f' % p['avg_rating'] }}/5</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section>
+  <h2>Members</h2>
+  <ul class="plain">
+    {% for m in members %}
+      <li>{{ m['username'] }}{% if m['role'] == 'admin' %} <span class="badge">Admin</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

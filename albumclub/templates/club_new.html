@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Create a club{% endblock %}
+{% block content %}
+<h1>Create a club</h1>
+<form method="post" class="card stack">
+  <label>Club name
+    <input type="text" name="name" maxlength="200" required value="{{ form.get('name', '') }}">
+  </label>
+  <label>Short description
+    <textarea name="description" maxlength="500" rows="3" required>{{ form.get('description', '') }}</textarea>
+  </label>
+  <label>Who can join?
+    <select name="privacy_setting" required>
+      <option value="open" {{ 'selected' if form.get('privacy_setting') == 'open' }}>Open</option>
+      <option value="invite_only" {{ 'selected' if form.get('privacy_setting') == 'invite_only' }}>Invite only</option>
+    </select>
+  </label>
+  <label>Album of the week changes on
+    <select name="changeover_day" required>
+      {% for day in days %}
+        <option value="{{ day }}" {{ 'selected' if form.get('changeover_day') == day }}>{{ day }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Create club</button>
+</form>
+<p class="muted">You'll become the club admin and get an invite code to share.</p>
+{% endblock %}

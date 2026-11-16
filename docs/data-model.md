@@ -95,7 +95,7 @@ UNIQUE (album_id, user_id): one review per member per album, which they can edit
 |---|---|---|---|
 | club | memberships, albums, proposals, votes, reviews | CASCADE | Once a club is deleted all records should be deleted as users data is under the club, username, passwords, records etc. Its good for privacy. |
 | user account | proposals, votes, reviews | SET NULL | If a user leaves a club their records should stay as their records provide a history of the club. |
-| user account | memberships | CASCADE (GUESS: please check, see below) | If a users account is deleted then the membership has no link. That is why I think it should be deleted. |
+| user account | memberships | CASCADE | If a users account is deleted then the membership has no link. That is why I think it should be deleted. |
 | user leaving a club | everything they added | nothing is deleted: membership status becomes 'left' | Similar to before, I think a users activity in teh club should be kept. |
 
 ## Diagram

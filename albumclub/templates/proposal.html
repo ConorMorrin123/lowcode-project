@@ -1,32 +1,32 @@
 {% extends "base.html" %}
-{% block title %}{{ proposal['Title'] }}{% endblock %}
+{% block title %}{{ proposal['title'] }}{% endblock %}
 {% block content %}
-<p><a href="{{ url_for('club_view', club_id=club['ClubID']) }}">← {{ club['Name'] }}</a></p>
+<p><a href="{{ url_for('club_view', club_id=club['id']) }}">← {{ club['name'] }}</a></p>
 
 <div class="card highlight">
-  <h1>{{ proposal['Title'] }}</h1>
-  <p>{{ proposal['Artist'] }} · {{ proposal['Year'] }} · {{ proposal['Genre'] }}</p>
-  {% if proposal['Pitch'] %}<p class="pitch">“{{ proposal['Pitch'] }}”</p>{% endif %}
+  <h1>{{ proposal['title'] }}</h1>
+  <p>{{ proposal['artist'] }}{% if proposal['release_year'] %} · {{ proposal['release_year'] }}{% endif %} · {{ proposal['genre'] }}</p>
+  {% if proposal['listening_url'] %}<p><a href="{{ proposal['listening_url'] }}" rel="noopener" target="_blank">Listen</a></p>{% endif %}
   <p class="muted">
-    Proposed by {{ proposal['ProposerName'] }} · Status: {{ proposal['Status'] }}
-    {% if proposal['ReviewCount'] %}· {{ '%.1f' % proposal['AvgRating'] }}/5 from {{ proposal['ReviewCount'] }} review{{ '' if proposal['ReviewCount'] == 1 else 's' }}{% endif %}
+    Proposed by {{ proposal['proposer_name'] or 'a former member' }} · Status: {{ proposal['status'] }}
+    {% if proposal['review_count'] %}· {{ '%.1f' % proposal['avg_rating'] }}/5 from {{ proposal['review_count'] }} review{{ '' if proposal['review_count'] == 1 else 's' }}{% endif %}
   </p>
 </div>
 
-{% if proposal['Status'] == 'won' %}
+{% if can_review %}
 <section>
   <h2>{{ 'Edit your review' if mine else 'Your review' }}</h2>
-  <form method="post" action="{{ url_for('review', proposal_id=proposal['ProposalID']) }}" class="card stack">
+  <form method="post" action="{{ url_for('review', proposal_id=proposal['id']) }}" class="card stack">
     <label>Rating
       <select name="rating" required>
         <option value="">Choose…</option>
         {% for n in range(5, 0, -1) %}
-          <option value="{{ n }}" {{ 'selected' if mine and mine['Rating'] == n }}>{{ n }} / 5</option>
+          <option value="{{ n }}" {{ 'selected' if mine and mine['rating'] == n }}>{{ n }} / 5</option>
         {% endfor %}
       </select>
     </label>
-    <label>Comment (optional)
-      <textarea name="comment" maxlength="1000" rows="4">{{ mine['Comment'] if mine and mine['Comment'] else '' }}</textarea>
+    <label>Review
+      <textarea name="review_text" maxlength="1000" rows="4" required>{{ mine['review_text'] if mine else '' }}</textarea>
     </label>
     <button type="submit">Save review</button>
   </form>
@@ -39,8 +39,8 @@
     <ul class="list">
       {% for r in reviews %}
         <li class="card">
-          <strong>{{ r['Name'] }}</strong> <span class="badge">{{ r['Rating'] }}/5</span>
-          {% if r['Comment'] %}<p>{{ r['Comment'] }}</p>{% endif %}
+          <strong>{{ r['username'] or 'Former member' }}</strong> <span class="badge">{{ r['rating'] }}/5</span>
+          <p>{{ r['review_text'] }}</p>
         </li>
       {% endfor %}
     </ul>

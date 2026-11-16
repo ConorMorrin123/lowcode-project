@@ -11,8 +11,8 @@
   <ul class="list">
     {% for c in clubs %}
       <li class="card">
-        <a href="{{ url_for('club_view', club_id=c['ClubID']) }}">{{ c['Name'] }}</a>
-        {% if c['Role'] == 'admin' %}<span class="badge">Admin</span>{% endif %}
+        <a href="{{ url_for('club_view', club_id=c['id']) }}">{{ c['name'] }}</a>
+        {% if c['role'] == 'admin' %}<span class="badge">Admin</span>{% endif %}
       </li>
     {% endfor %}
   </ul>

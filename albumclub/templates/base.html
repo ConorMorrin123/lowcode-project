@@ -11,7 +11,7 @@
     <a class="brand" href="{{ url_for('home') }}">♫ Album Club</a>
     <nav>
       {% if g.user %}
-        <span class="muted">{{ g.user['Name'] }}</span>
+        <span class="muted">{{ g.user['username'] }}</span>
         <form method="post" action="{{ url_for('logout') }}" class="inline">
           <button type="submit" class="link">Log out</button>
         </form>

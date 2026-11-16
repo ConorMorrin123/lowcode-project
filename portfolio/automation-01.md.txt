@@ -1,0 +1,43 @@
+## Business problem
+(what is done manually today, by whom, how often, how long it takes)
+I buy and sell on the platform Vinted. Every time I make a sale, I have to manually 
+search for the sold item in a single list that also contains customer offers, accepts, 
+declines, messages and bought items. 
+The account holder (me) does this search, 
+and the sale can be days old by the time I look. 
+It takes 20 seconds to 1 minute per sale. Vinted has no built-in filter for this, 
+and if I miss a sale, I risk missing the shipping deadline, 
+after which the order is cancelled. I want to create an automation 
+that separates my Sold items from my Offers/Unsold items and puts 
+the shipping label and deadline in one place.
+ 
+## Trigger
+(what event starts this — and is it a webhook or a poll?)
+Webhook. Vinted has no public API or outgoing webhooks, so the trigger is the emails Vinted sends. A Gmail filter forwards them to a Make Custom mailhook, which fires the scenario the moment an email arrives, with no schedule or checking. Two emails are used:
+- Sale email ("[username] has bought..."): buyer username, item, price and the 5-day send window.
+- Label email ("Your shipping label is attached..."): item name, tracking code, shipment deadline, transaction ID and the label attachment.
+ 
+## Steps
+1. Vinted sends the sale email, and Gmail forwards it to the Make mailhook.
+2. Make parses the email, and a filter checks it is a sale email. Offers and messages are ignored.
+3. Make adds a row to a "Sold items" sheet: item, buyer username, price, date, status = Label needed.
+4. Make sends me a notification: "Sold: [item], EUR [price]. Generate the label in Vinted."
+5. I generate the label in the Vinted app. This step stays manual because Vinted offers no way to automate it.
+6. Vinted sends the label email, and Gmail forwards it to the Make mailhook.
+7. Make saves the label attachment to Google Drive, finds the matching row, and updates it with the tracking code, deadline, transaction ID, label link and status = Ready to ship.
+8. Make sends me a notification with the label link and the ship-by deadline.
+ 
+## Failure questions
+- What if it fires twice?
+A: Gmail or Make could deliver the same email twice, which would create duplicate rows for the same sale. Before writing, Make searches the sheet for a unique key and skips the email if it already exists. The key is the transaction ID for label emails. Sale emails have no transaction ID, so I would use the Gmail message ID.
+ 
+- What if a step fails halfway?
+A: For example, the label saves to Drive but the sheet update fails, or the label email's item name doesn't match any row. Make retries the failing step through an error handler. If it still fails, Make emails me the original Vinted email so no sale is lost, and an unmatched label email creates a new row flagged "Check manually". Incomplete executions stay enabled so I can re-run them. The worst case is that I fall back to today's manual method.
+ 
+- What data crosses a third party, and is any of it personal?
+A: Gmail, Make and Google Drive/Sheets all handle the Vinted emails. The personal data is my Vinted username, the buyer's username, item names, prices and tracking codes. The emails don't show addresses or buyer email addresses. To limit exposure, I would store only the fields I need and delete old rows and labels once the sale is complete.
+ 
+## Risks
+- Matching the sale to the label: the sale email has no transaction ID, so Make matches it to the label email by item name. If I list two items with the same title, the label could be attached to the wrong sale. To reduce this, I would only match rows that are still marked "Label needed" and pick the oldest one first. Anything with more than one possible match gets flagged "Check manually" instead of being guessed.
+ 
+Claude finished the response

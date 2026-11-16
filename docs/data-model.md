@@ -26,7 +26,7 @@
 | Column | Required? | Rules |
 |---|---|---|
 | id | yes | primary key |
-| user_id | no | FK to user (can be emptied, see delete rules) |
+| user_id | yes | FK to user; deleting the user deletes the membership (CASCADE, see delete rules) |
 | club_id | yes | FK to club |
 | role | yes | CHECK in ('admin', 'member') |
 | status | yes | CHECK in ('pending', 'active', 'left') |
@@ -97,6 +97,11 @@ UNIQUE (album_id, user_id): one review per member per album, which they can edit
 | user account | proposals, votes, reviews | SET NULL | If a user leaves a club their records should stay as their records provide a history of the club. |
 | user account | memberships | CASCADE | If a users account is deleted then the membership has no link. That is why I think it should be deleted. |
 | user leaving a club | everything they added | nothing is deleted: membership status becomes 'left' | Similar to before, I think a users activity in teh club should be kept. |
+| album | proposals | RESTRICT (since `002_restrict_deletes.sql`) | The database refuses to delete an album that has been proposed. Its proposals, and whether it won, are part of the club's history and should not disappear by accident. |
+| proposal | votes | RESTRICT (since `002_restrict_deletes.sql`) | The database refuses to delete a proposal that has votes, so the voting record for each week is kept. |
+| album | reviews | CASCADE | Reviews are linked only to an album (they have no club_id of their own). RESTRICT here would stop a club from ever being deleted once it had reviews, which breaks the club CASCADE rule above. In practice reviews are only removed when their whole club is deleted. |
+
+Deleting a whole club still works: the club CASCADE removes its proposals and votes directly (they have their own club_id), so the RESTRICT rules only block deleting a single album or proposal on its own.
 
 ## Diagram
 ```mermaid

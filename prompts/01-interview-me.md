@@ -14,8 +14,13 @@ Copy everything in the box. Replace the [PLACEHOLDERS] first.
 You are helping me design the data model for my app. I am not a professional developer.
 Read AGENTS.md first.
 
-My app: [ONE OR TWO SENTENCES: WHAT IT DOES AND WHO USES IT]
-My paper sketch has these things in it: [LIST THE BOXES ON YOUR SKETCH, e.g. member, equipment, loan]
+My app: A private app for small music-loving groups, such as friends, a university society or a workplace
+listening club. It replaces the usual group-chat chaos of "what should we listen to this week?" with a
+structured weekly cycle: members propose albums, an admin approves them, the club votes, and the
+winner becomes the album of the week. Everyone then rates and reviews it. Each club's data is
+visible only to its own members.
+
+My paper sketch has these things in it: User, Membership, Club, Vote, Review, Proposal, Album
 
 Interview me about my data. Rules:
 - Ask ONE question at a time and wait for my answer.

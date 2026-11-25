@@ -4,7 +4,7 @@
 <h1>Create a club</h1>
 <form method="post" class="card stack">
   <label>Club name
-    <input type="text" name="name" maxlength="200" required value="{{ form.get('name', '') }}">
+    <input type="text" name="name" maxlength="200" required autofocus value="{{ form.get('name', '') }}">
   </label>
   <label>Short description
     <textarea name="description" maxlength="500" rows="3" required>{{ form.get('description', '') }}</textarea>

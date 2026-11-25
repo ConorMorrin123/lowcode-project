@@ -2,26 +2,56 @@
 {% block title %}Propose an album{% endblock %}
 {% block content %}
 <h1>Propose an album</h1>
-<p class="muted">For <a href="{{ url_for('club_view', club_id=club['id']) }}">{{ club['name'] }}</a></p>
-<form method="post" class="card stack">
-  <label>Title
-    <input type="text" name="title" required value="{{ form.get('title', '') }}">
-  </label>
-  <label>Artist
-    <input type="text" name="artist" required value="{{ form.get('artist', '') }}">
-  </label>
-  <label>Genre
-    <input type="text" name="genre" required value="{{ form.get('genre', '') }}">
-  </label>
-  <label>Release year (optional)
-    <input type="number" name="release_year" min="1900" max="2100" value="{{ form.get('release_year', '') }}">
-  </label>
-  <label>Cover art link (optional)
-    <input type="url" name="cover_art_url" value="{{ form.get('cover_art_url', '') }}">
-  </label>
-  <label>Listening link, e.g. Spotify or YouTube Music (optional)
-    <input type="url" name="listening_url" value="{{ form.get('listening_url', '') }}">
-  </label>
-  <button type="submit">Submit proposal</button>
+<p class="lead">Suggest an album for <a href="{{ url_for('club_view', club_id=club['id']) }}">{{ club['name'] }}</a>.
+  An admin reviews it before it goes to the vote.</p>
+
+<form method="post" class="card stack propose-form" id="propose-form">
+  <fieldset class="form-group">
+    <legend>Album details <span class="req-note">* required</span></legend>
+    <label><span>Title <span class="req" aria-hidden="true">*</span></span>
+      <input type="text" name="title" required autofocus placeholder="e.g. Blue" value="{{ form.get('title', '') }}">
+    </label>
+    <label><span>Artist <span class="req" aria-hidden="true">*</span></span>
+      <input type="text" name="artist" required placeholder="e.g. Joni Mitchell" value="{{ form.get('artist', '') }}">
+    </label>
+    <label><span>Genre <span class="req" aria-hidden="true">*</span></span>
+      <input type="text" name="genre" required placeholder="e.g. Folk" value="{{ form.get('genre', '') }}">
+    </label>
+  </fieldset>
+
+  <fieldset class="form-group optional">
+    <legend>Optional extras</legend>
+    <label>Release year
+      <input type="number" name="release_year" min="1900" max="2100" placeholder="e.g. 1971" value="{{ form.get('release_year', '') }}">
+    </label>
+    <label>Cover art link
+      <input type="url" name="cover_art_url" placeholder="https://…" value="{{ form.get('cover_art_url', '') }}">
+      <span class="hint">A link to an image of the album cover.</span>
+    </label>
+    <label>Listening link
+      <input type="url" name="listening_url" placeholder="https://…" value="{{ form.get('listening_url', '') }}">
+      <span class="hint">For example Spotify or YouTube Music.</span>
+    </label>
+  </fieldset>
+
+  <div class="form-actions">
+    <button type="submit" class="primary-lg" id="propose-submit">Submit proposal</button>
+    <a class="button secondary" href="{{ url_for('club_view', club_id=club['id']) }}">Cancel</a>
+  </div>
 </form>
+
+<script>
+  // Feedback on click: show that the proposal is being sent and stop double submits.
+  document.getElementById("propose-form").addEventListener("submit", function () {
+    var button = document.getElementById("propose-submit");
+    button.disabled = true;
+    button.textContent = "Submitting…";
+  });
+  // If the user comes back with the browser's Back button, make the button usable again.
+  window.addEventListener("pageshow", function () {
+    var button = document.getElementById("propose-submit");
+    button.disabled = false;
+    button.textContent = "Submit proposal";
+  });
+</script>
 {% endblock %}

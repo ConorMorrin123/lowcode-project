@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to main content</a>
   <header class="topbar">
     <a class="brand" href="{{ url_for('home') }}">♫ Album Club</a>
     <nav>
@@ -19,10 +20,10 @@
     </nav>
   </header>
 
-  <main>
+  <main id="main" tabindex="-1">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
+        <div class="flash {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</div>
       {% endfor %}
     {% endwith %}
     {% block content %}{% endblock %}

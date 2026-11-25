@@ -4,13 +4,13 @@
 <h1>Create an account</h1>
 <form method="post" class="card stack">
   <label>Username
-    <input type="text" name="username" maxlength="50" required value="{{ form.get('username', '') }}">
+    <input type="text" name="username" maxlength="50" required autofocus autocomplete="username" value="{{ form.get('username', '') }}">
   </label>
   <label>Email
-    <input type="email" name="email" required value="{{ form.get('email', '') }}">
+    <input type="email" name="email" required autocomplete="email" value="{{ form.get('email', '') }}">
   </label>
   <label>Password (at least 8 characters)
-    <input type="password" name="password" minlength="8" required>
+    <input type="password" name="password" minlength="8" required autocomplete="new-password">
   </label>
   <label>Your music taste (optional)
     <input type="text" name="music_taste" maxlength="200" value="{{ form.get('music_taste', '') }}">

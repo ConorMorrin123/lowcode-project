@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_card %}
+{% block title %}Home{% endblock %}
+{% block content %}
+  <h1>Hi {{ g.user['display_name'] or g.user['username'] }}</h1>
+
+  <section aria-labelledby="suggested-heading" class="suggested">
+    <h2 id="suggested-heading">Suggested for you</h2>
+    {% if suggested %}
+      <div class="grid">{% for item in suggested %}{{ post_card(item, show_score=true) }}{% endfor %}</div>
+    {% else %}
+      <p class="card muted">No suggestions yet. Add your instruments, genres and county to
+        <a href="{{ url_for('edit_profile') }}">your profile</a> and we'll match you with posts.</p>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="newest-heading">
+    <div class="section-head">
+      <h2 id="newest-heading">Newest posts</h2>
+      <a href="{{ url_for('posts') }}">See all and filter →</a>
+    </div>
+    {% if newest %}
+      <div class="grid">{% for item in newest %}{{ post_card(item) }}{% endfor %}</div>
+    {% else %}
+      <p class="card muted">No posts yet. <a href="{{ url_for('new_post') }}">Be the first to post.</a></p>
+    {% endif %}
+  </section>
+{% endblock %}

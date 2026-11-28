@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Edit profile{% endblock %}
+{% block content %}
+  <h1>Edit your profile</h1>
+  <form method="post" action="{{ url_for('save_profile') }}" enctype="multipart/form-data" class="form">
+    <section class="card">
+      <h2>About you</h2>
+      <label for="display_name">Display name</label>
+      <input id="display_name" name="display_name" maxlength="50" value="{{ user['display_name'] or '' }}">
+
+      <label for="photo">Photo <span class="muted small">(JPG or PNG, up to 2 MB)</span></label>
+      <input id="photo" name="photo" type="file" accept=".jpg,.jpeg,.png">
+      {% if user['photo_path'] %}
+        <label class="check"><input type="checkbox" name="remove_photo" value="yes"> Remove my current photo</label>
+      {% endif %}
+
+      <label for="bio">Short bio <span class="muted small">(up to 500 characters)</span></label>
+      <textarea id="bio" name="bio" maxlength="500" rows="3">{{ user['bio'] or '' }}</textarea>
+
+      <div class="row">
+        <div>
+          <label for="age_range">Age range</label>
+          <select id="age_range" name="age_range">
+            <option value="">Prefer not to say</option>
+            {% for a in age_ranges %}<option {% if user['age_range'] == a %}selected{% endif %}>{{ a }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="county_id">County</label>
+          <select id="county_id" name="county_id">
+            <option value="">Not set</option>
+            {% for c in counties %}<option value="{{ c['id'] }}" {% if user['county_id'] == c['id'] %}selected{% endif %}>{{ c['name'] }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="years_playing">Years playing</label>
+          <input id="years_playing" name="years_playing" type="number" min="0" max="80" value="{{ user['years_playing'] if user['years_playing'] is not none else '' }}">
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>What you're looking for</h2>
+      <div class="row">
+        <div>
+          <label for="commitment">Commitment</label>
+          <select id="commitment" name="commitment">
+            <option value="">Not set</option>
+            {% for c in commitments %}<option {% if user['commitment'] == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="project_type">Project type</label>
+          <select id="project_type" name="project_type">
+            <option value="">Not set</option>
+            {% for p in project_types %}<option {% if user['project_type'] == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="availability">Availability</label>
+          <select id="availability" name="availability">
+            <option value="">Not set</option>
+            {% for a in availabilities %}<option {% if user['availability'] == a %}selected{% endif %}>{{ a }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Instruments</h2>
+      <p class="muted small">Choose a skill level for each instrument you play.</p>
+      <div class="skill-grid">
+        {% for i in instruments %}
+          <div class="skill-row">
+            <label for="skill_{{ i['id'] }}">{{ i['name'] }}</label>
+            <select id="skill_{{ i['id'] }}" name="skill_{{ i['id'] }}">
+              <option value="">Don't play</option>
+              {% for s in skill_levels %}<option {% if my_skills.get(i['id']) == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+            </select>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Genres</h2>
+      <fieldset class="chips">
+        <legend class="sr-only">Genres you like</legend>
+        {% for gn in genres %}
+          <label class="chip"><input type="checkbox" name="genre_ids" value="{{ gn['id'] }}" {% if gn['id'] in my_genres %}checked{% endif %}> {{ gn['name'] }}</label>
+        {% endfor %}
+      </fieldset>
+    </section>
+
+    <section class="card">
+      <h2>Influences and gear</h2>
+      <label for="influences">Influences and favourite bands</label>
+      <textarea id="influences" name="influences" maxlength="500" rows="2">{{ user['influences'] or '' }}</textarea>
+      <label for="gear">Gear</label>
+      <textarea id="gear" name="gear" maxlength="500" rows="2">{{ user['gear'] or '' }}</textarea>
+    </section>
+
+    <section class="card">
+      <h2>Links and contact</h2>
+      <p class="muted small">Links must start with https://. Your sign-up email is never shown.</p>
+      {% for field, label in [('soundcloud_url', 'SoundCloud'), ('youtube_url', 'YouTube'), ('spotify_url', 'Spotify'), ('instagram_url', 'Instagram')] %}
+        <label for="{{ field }}">{{ label }}</label>
+        <input id="{{ field }}" name="{{ field }}" type="url" pattern="https://.*" placeholder="https://" value="{{ user[field] or '' }}">
+      {% endfor %}
+      <div class="row">
+        <div>
+          <label for="public_email">Public contact email <span class="muted small">(optional)</span></label>
+          <input id="public_email" name="public_email" type="email" value="{{ user['public_email'] or '' }}">
+        </div>
+        <div>
+          <label for="public_phone">Public phone <span class="muted small">(optional)</span></label>
+          <input id="public_phone" name="public_phone" type="tel" maxlength="20" value="{{ user['public_phone'] or '' }}">
+        </div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button type="submit" class="btn">Save profile</button>
+      <a href="{{ url_for('profile', username=user['username']) }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

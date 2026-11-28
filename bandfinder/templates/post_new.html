@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}New post{% endblock %}
+{% block content %}
+  {% set picked = form.getlist('instrument_ids') if form.getlist is defined else [] %}
+  {% set picked_genres = form.getlist('genre_ids') if form.getlist is defined else [] %}
+  <section class="card">
+    <h1>New post</h1>
+    <form method="post" action="{{ url_for('create_post') }}" class="form">
+      <label for="title">Title <span class="muted small">(up to 100 characters)</span></label>
+      <input id="title" name="title" required maxlength="100" value="{{ form.get('title', '') }}" placeholder="e.g. Indie band needs a drummer">
+
+      <label for="description">Description</label>
+      <textarea id="description" name="description" required maxlength="2000" rows="5" placeholder="Who you are, what you play, rehearsal plans...">{{ form.get('description', '') }}</textarea>
+
+      <fieldset class="chips">
+        <legend>Looking for <span class="muted small">(at least one)</span></legend>
+        {% for i in instruments %}
+          <label class="chip"><input type="checkbox" name="instrument_ids" value="{{ i['id'] }}" {% if i['id']|string in picked %}checked{% endif %}> {{ i['name'] }}</label>
+        {% endfor %}
+      </fieldset>
+
+      <fieldset class="chips">
+        <legend>Genres</legend>
+        {% for gn in genres %}
+          <label class="chip"><input type="checkbox" name="genre_ids" value="{{ gn['id'] }}" {% if gn['id']|string in picked_genres %}checked{% endif %}> {{ gn['name'] }}</label>
+        {% endfor %}
+      </fieldset>
+
+      <div class="row">
+        <div>
+          <label for="county_id">County</label>
+          <select id="county_id" name="county_id" required>
+            <option value="">Choose…</option>
+            {% for c in counties %}
+              <option value="{{ c['id'] }}" {% if form.get('county_id') == c['id']|string or (not form and g.user['county_id'] == c['id']) %}selected{% endif %}>{{ c['name'] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="commitment">Commitment</label>
+          <select id="commitment" name="commitment" required>
+            <option value="">Choose…</option>
+            {% for c in commitments %}<option {% if form.get('commitment') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="expires_on">Expires on <span class="muted small">(optional, max 30 days)</span></label>
+          <input id="expires_on" name="expires_on" type="date" min="{{ first_day }}" max="{{ last_day }}" value="{{ form.get('expires_on', '') }}">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn">Publish post</button>
+        <a href="{{ url_for('posts') }}">Cancel</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

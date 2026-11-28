@@ -1,0 +1,24 @@
+{# A post shown as a card. `item` has .post, .instruments and .genres #}
+{% macro post_card(item, show_score=false) %}
+  {% set post = item.post %}
+  <article class="card post-card">
+    <div class="post-card-top">
+      <span class="pill pill-{{ post['commitment']|lower }}">{{ post['commitment'] }}</span>
+      <span class="muted small">{{ post['county_name'] }}</span>
+      {% if show_score %}<span class="match small">Match {{ post['score'] }}</span>{% endif %}
+    </div>
+    <h3><a href="{{ url_for('post_detail', post_id=post['id']) }}">{{ post['title'] }}</a></h3>
+    <p class="wanted"><span class="muted small">Looking for</span>
+      {% for i in item.instruments %}<span class="tag tag-strong">{{ i['name'] }}</span>{% endfor %}
+    </p>
+    {% if item.genres %}
+      <p>{% for gn in item.genres %}<span class="tag">{{ gn['name'] }}</span>{% endfor %}</p>
+    {% endif %}
+    <p class="muted small">
+      by {{ author(post['username']) }} · {{ post['created_at']|day }} · expires {{ post['expires_at']|day }}
+    </p>
+  </article>
+{% endmacro %}
+
+{# A username as a link, or "Deleted user" if their account is gone #}
+{% macro author(username) %}{% if username %}<a href="{{ url_for('profile', username=username) }}">{{ username }}</a>{% else %}<em>Deleted user</em>{% endif %}{% endmacro %}

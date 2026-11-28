@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="hero">
+    <h1>Find your next band mate.</h1>
+    <p class="lead">Band Finder helps musicians across Ireland find people to jam with, start a band
+      or fill a gap in their line-up. Make a profile, post what you're looking for, and filter by
+      instrument, genre and county.</p>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('register') }}">Create your profile</a>
+      <a class="btn btn-ghost" href="{{ url_for('login') }}">Log in</a>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Show what you play</h2>
+      <p class="muted">List your instruments with a skill level for each, the genres you love, your
+        influences and gear, plus links to your SoundCloud, YouTube, Spotify or Instagram.</p>
+    </div>
+    <div class="card">
+      <h2>Post and filter</h2>
+      <p class="muted">Looking for a drummer in Cork or a bassist in Dublin? Post it, then filter
+        by instrument, genre, county, skill level and commitment.</p>
+    </div>
+    <div class="card">
+      <h2>Suggested for you</h2>
+      <p class="muted">The posts that match your instruments, county and genres go to the top,
+        so you see the best fits first.</p>
+    </div>
+  </section>
+{% endblock %}

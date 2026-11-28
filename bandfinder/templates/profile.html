@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_card %}
+{% set name = user['display_name'] or user['username'] %}
+{% block title %}{{ name }}{% endblock %}
+{% block content %}
+  <section class="card profile-head">
+    {% if user['photo_path'] %}
+      <img class="avatar" src="{{ url_for('static', filename='uploads/' ~ user['photo_path']) }}" alt="Photo of {{ name }}">
+    {% else %}
+      <div class="avatar avatar-empty" aria-hidden="true">{{ name[0]|upper }}</div>
+    {% endif %}
+    <div>
+      <h1>{{ name }}</h1>
+      <p class="muted">@{{ user['username'] }}{% if county %} · {{ county['name'] }}{% endif %}{% if user['age_range'] %} · {{ user['age_range'] }}{% endif %}</p>
+      <p>
+        {% if user['commitment'] %}<span class="pill pill-{{ user['commitment']|lower }}">{{ user['commitment'] }}</span>{% endif %}
+        {% if user['project_type'] %}<span class="tag">{{ user['project_type'] }}</span>{% endif %}
+        {% if user['availability'] %}<span class="tag">Free: {{ user['availability'] }}</span>{% endif %}
+        {% if user['years_playing'] is not none %}<span class="tag">{{ user['years_playing'] }} years playing</span>{% endif %}
+      </p>
+      {% if user['bio'] %}<p>{{ user['bio'] }}</p>{% endif %}
+      <div class="actions">
+        {% if g.user['id'] == user['id'] %}
+          <a class="btn btn-small" href="{{ url_for('edit_profile') }}">Edit profile</a>
+        {% else %}
+          <a class="link-danger small" href="{{ url_for('report_user', username=user['username']) }}">Report this user</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <div class="two-col">
+    <section class="card">
+      <h2>Plays</h2>
+      {% if instruments %}
+        <ul class="plain">
+          {% for i in instruments %}<li><strong>{{ i['name'] }}</strong> <span class="muted">· {{ i['skill_level'] }}</span></li>{% endfor %}
+        </ul>
+      {% else %}<p class="muted">No instruments added yet.</p>{% endif %}
+
+      <h2>Genres</h2>
+      {% if genres %}<p>{% for gn in genres %}<span class="tag">{{ gn['name'] }}</span>{% endfor %}</p>
+      {% else %}<p class="muted">No genres added yet.</p>{% endif %}
+    </section>
+
+    <section class="card">
+      {% if user['influences'] %}<h2>Influences</h2><p>{{ user['influences'] }}</p>{% endif %}
+      {% if user['gear'] %}<h2>Gear</h2><p>{{ user['gear'] }}</p>{% endif %}
+      <h2>Contact</h2>
+      {% set links = [('SoundCloud', user['soundcloud_url']), ('YouTube', user['youtube_url']),
+                      ('Spotify', user['spotify_url']), ('Instagram', user['instagram_url'])] %}
+      {% set has_contact = user['soundcloud_url'] or user['youtube_url'] or user['spotify_url']
+                           or user['instagram_url'] or user['public_email'] or user['public_phone'] %}
+      {% if has_contact %}
+        <ul class="plain">
+          {% for label, url in links if url %}
+            <li><a href="{{ url }}" target="_blank" rel="noopener noreferrer nofollow">{{ label }} ↗</a></li>
+          {% endfor %}
+          {% if user['public_email'] %}<li>Email: <a href="mailto:{{ user['public_email'] }}">{{ user['public_email'] }}</a></li>{% endif %}
+          {% if user['public_phone'] %}<li>Phone: {{ user['public_phone'] }}</li>{% endif %}
+        </ul>
+      {% else %}
+        <p class="muted">No contact details yet. You can still comment on their posts.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <section>
+    <h2>Open posts</h2>
+    {% if posts %}<div class="grid">{% for item in posts %}{{ post_card(item) }}{% endfor %}</div>
+    {% else %}<p class="muted">No open posts.</p>{% endif %}
+  </section>
+{% endblock %}

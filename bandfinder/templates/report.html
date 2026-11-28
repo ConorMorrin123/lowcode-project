@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Report {{ user['username'] }}{% endblock %}
+{% block content %}
+  <section class="card narrow">
+    <h1>Report {{ user['username'] }}</h1>
+    <p class="muted">Tell an admin what happened. Only admins see reports.</p>
+    <form method="post" action="{{ url_for('report_user', username=user['username']) }}" class="form">
+      <label for="reason">What's the problem?</label>
+      <textarea id="reason" name="reason" required maxlength="1000" rows="5">{{ form.get('reason', '') }}</textarea>
+      <div class="actions">
+        <button type="submit" class="btn btn-danger">Send report</button>
+        <a href="{{ url_for('profile', username=user['username']) }}">Cancel</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

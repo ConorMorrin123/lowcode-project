@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_card %}
+{% block title %}Posts{% endblock %}
+{% block content %}
+  <div class="section-head">
+    <h1>Posts</h1>
+    <a class="btn" href="{{ url_for('new_post') }}">New post</a>
+  </div>
+
+  {% if suggested and not filtering %}
+    <section aria-labelledby="suggested-heading" class="suggested">
+      <h2 id="suggested-heading">Suggested for you</h2>
+      <div class="grid">{% for item in suggested %}{{ post_card(item, show_score=true) }}{% endfor %}</div>
+    </section>
+  {% endif %}
+
+  <form method="get" action="{{ url_for('posts') }}" class="card filters" aria-label="Filter posts">
+    <div>
+      <label for="f-instrument">Instrument</label>
+      <select id="f-instrument" name="instrument">
+        <option value="">Any</option>
+        {% for i in instruments %}<option value="{{ i['id'] }}" {% if filters.instrument_id == i['id'] %}selected{% endif %}>{{ i['name'] }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="f-genre">Genre</label>
+      <select id="f-genre" name="genre">
+        <option value="">Any</option>
+        {% for gn in genres %}<option value="{{ gn['id'] }}" {% if filters.genre_id == gn['id'] %}selected{% endif %}>{{ gn['name'] }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="f-county">County</label>
+      <select id="f-county" name="county">
+        <option value="">Any</option>
+        {% for c in counties %}<option value="{{ c['id'] }}" {% if filters.county_id == c['id'] %}selected{% endif %}>{{ c['name'] }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="f-skill">Poster's skill</label>
+      <select id="f-skill" name="skill">
+        <option value="">Any</option>
+        {% for s in skill_levels %}<option {% if filters.skill_level == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="f-commitment">Commitment</label>
+      <select id="f-commitment" name="commitment">
+        <option value="">Any</option>
+        {% for c in commitments %}<option {% if filters.commitment == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="filter-buttons">
+      <button type="submit" class="btn">Filter</button>
+      {% if filtering %}<a href="{{ url_for('posts') }}">Clear</a>{% endif %}
+    </div>
+  </form>
+
+  <section aria-labelledby="all-heading">
+    <h2 id="all-heading">{% if filtering %}{{ posts|length }} matching post{{ '' if posts|length == 1 else 's' }}{% else %}All open posts{% endif %}</h2>
+    {% if posts %}
+      <div class="grid">{% for item in posts %}{{ post_card(item) }}{% endfor %}</div>
+    {% else %}
+      <p class="card muted">No posts match. Try removing a filter, or <a href="{{ url_for('new_post') }}">make a post</a> yourself.</p>
+    {% endif %}
+  </section>
+{% endblock %}

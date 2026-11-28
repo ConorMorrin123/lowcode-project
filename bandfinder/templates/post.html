@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import author %}
+{% block title %}{{ post['title'] }}{% endblock %}
+{% block content %}
+  <article class="card">
+    <div class="post-card-top">
+      <span class="pill pill-{{ post['commitment']|lower }}">{{ post['commitment'] }}</span>
+      <span class="muted">{{ post['county_name'] }}</span>
+      {% if expired %}<span class="pill pill-expired">Expired</span>{% endif %}
+    </div>
+    <h1>{{ post['title'] }}</h1>
+    <p class="muted small">Posted by {{ author(post['username']) }} on {{ post['created_at']|day }} · expires {{ post['expires_at']|day }}</p>
+    <p class="wanted"><span class="muted small">Looking for</span>
+      {% for i in instruments %}<a class="tag tag-strong" href="{{ url_for('posts', instrument=i['id']) }}">{{ i['name'] }}</a>{% endfor %}
+    </p>
+    {% if genres %}<p>{% for gn in genres %}<a class="tag" href="{{ url_for('posts', genre=gn['id']) }}">{{ gn['name'] }}</a>{% endfor %}</p>{% endif %}
+    <div class="description">{{ post['description'] }}</div>
+
+    <div class="actions">
+      {% if post['user_id'] == g.user['id'] %}
+        <form method="post" action="{{ url_for('delete_post', post_id=post['id']) }}" class="inline"
+              onsubmit="return confirm('Delete this post and its comments?');">
+          <button type="submit" class="btn btn-danger btn-small">Delete my post</button>
+        </form>
+      {% elif is_admin %}
+        <form method="post" action="{{ url_for('admin_delete_post', post_id=post['id']) }}" class="inline"
+              onsubmit="return confirm('Admin: delete this post and its comments?');">
+          <button type="submit" class="btn btn-danger btn-small">Admin: delete post</button>
+        </form>
+      {% endif %}
+    </div>
+  </article>
+
+  <section id="comments" class="card" aria-labelledby="comments-heading">
+    <h2 id="comments-heading">Comments ({{ comments|length }})</h2>
+    {% for c in comments %}
+      <div class="comment">
+        <p class="muted small">{{ author(c['username']) }} · {{ c['created_at']|day }}</p>
+        {% if c['removed_by_admin'] %}
+          <p><span class="pill pill-removed">Removed by admin</span></p>
+          {% if is_admin %}<p class="muted small">Original text (admins only): {{ c['body'] }}</p>{% endif %}
+        {% else %}
+          <p>{{ c['body'] }}</p>
+        {% endif %}
+        <div class="comment-actions">
+          {% if c['user_id'] == g.user['id'] %}
+            <form method="post" action="{{ url_for('delete_comment', comment_id=c['id']) }}" class="inline">
+              <button type="submit" class="link small">Delete</button>
+            </form>
+          {% endif %}
+          {% if is_admin and not c['removed_by_admin'] %}
+            <form method="post" action="{{ url_for('admin_remove_comment', comment_id=c['id']) }}" class="inline">
+              <button type="submit" class="link link-danger small">Admin: remove</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <p class="muted">No comments yet. Interested? Say hello below.</p>
+    {% endfor %}
+
+    <form method="post" action="{{ url_for('add_comment', post_id=post['id']) }}" class="form">
+      <label for="body">Add a comment</label>
+      <textarea id="body" name="body" required maxlength="1000" rows="3"></textarea>
+      <button type="submit" class="btn">Post comment</button>
+    </form>
+  </section>
+{% endblock %}

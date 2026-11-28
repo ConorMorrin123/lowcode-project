@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "_macros.html" import author %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+  <h1>Admin</h1>
+
+  <section class="card" aria-labelledby="reports-heading">
+    <h2 id="reports-heading">Open reports ({{ reports|length }})</h2>
+    {% if reports %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Reported user</th><th>Reported by</th><th>Reason</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <tbody>
+            {% for r in reports %}
+              <tr>
+                <td>{{ r['created_at']|day }}</td>
+                <td>{{ author(r['reported_username']) }}</td>
+                <td>{{ author(r['reporter_username']) }}</td>
+                <td>{{ r['reason'] }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin_resolve_report', report_id=r['id']) }}" class="inline">
+                    <button type="submit" class="btn btn-small">Resolve</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}<p class="muted">No open reports.</p>{% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="users-heading">
+    <h2 id="users-heading">Users ({{ users|length }})</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Username</th><th>Role</th><th>Joined</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+          {% for u in users %}
+            <tr>
+              <td><a href="{{ url_for('profile', username=u['username']) }}">{{ u['username'] }}</a></td>
+              <td>{{ 'Admin' if u['is_admin'] else 'Member' }}</td>
+              <td>{{ u['created_at']|day }}</td>
+              <td class="row-actions">
+                {% if not u['is_admin'] %}
+                  <form method="post" action="{{ url_for('admin_make_admin', user_id=u['id']) }}" class="inline">
+                    <button type="submit" class="btn btn-small btn-ghost">Make admin</button>
+                  </form>
+                {% endif %}
+                {% if u['id'] != g.user['id'] %}
+                  <form method="post" action="{{ url_for('admin_delete_user', user_id=u['id']) }}" class="inline"
+                        onsubmit="return confirm('Delete this user? Their posts and comments will show Deleted user.');">
+                    <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small">To delete a post or remove a comment, open the post. The admin buttons are there.</p>
+  </section>
+{% endblock %}

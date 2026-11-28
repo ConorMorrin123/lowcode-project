@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Find your band{% endblock %} · Band Finder</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {# Loaded early so the saved light/dark choice is applied before the page shows #}
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark" aria-hidden="true">♪</span> Band Finder</a>
+    <nav class="nav" aria-label="Main">
+      {% if g.user %}
+        <a href="{{ url_for('posts') }}">Posts</a>
+        <a href="{{ url_for('profile', username=g.user['username']) }}">My profile</a>
+        {% if is_admin %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}
+        <a href="{{ url_for('new_post') }}" class="btn btn-small">New post</a>
+        <form method="post" action="{{ url_for('logout') }}" class="inline">
+          <button type="submit" class="link">Log out</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('login') }}">Log in</a>
+        <a href="{{ url_for('register') }}" class="btn btn-small">Sign up</a>
+      {% endif %}
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch between dark and light mode">
+        <span aria-hidden="true">◐</span> <span class="theme-label">Light mode</span>
+      </button>
+    </nav>
+  </header>
+
+  <main id="main" tabindex="-1">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">Band Finder · For musicians in Ireland, 18+</footer>
+</body>
+</html>

@@ -5,6 +5,7 @@ this file). All database work happens in db.py; this file only handles pages,
 forms and who is allowed to do what.
 """
 import os
+import re
 import secrets
 import sqlite3
 from datetime import date, timedelta
@@ -15,10 +16,16 @@ from flask import (Flask, abort, flash, g, redirect, render_template,
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import db
+import irish_time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(HERE, "static", "uploads")
 PHOTO_TYPES = {".jpg", ".jpeg", ".png"}
+# Every real PNG file starts with these 8 bytes, and every JPEG with these 3.
+PNG_START = b"\x89PNG\r\n\x1a\n"
+JPEG_START = b"\xff\xd8\xff"
+# Letters, numbers, _ and - only, 3 to 30 characters (same rule as the database).
+USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]{3,30}$")
 
 app = Flask(__name__)
 # The secret key comes from the environment, never from this file (see AGENTS.md).
@@ -55,10 +62,11 @@ def page_helpers():
 
 @app.template_filter("day")
 def day(timestamp):
-    """'2026-11-28 17:30:00' -> '28 Nov 2026'."""
+    """A UTC time from the database, shown as its Irish date:
+    '2026-11-28 17:30:00' -> '28 Nov 2026'."""
     if not timestamp:
         return ""
-    return date.fromisoformat(timestamp[:10]).strftime("%d %b %Y").lstrip("0")
+    return irish_time.irish_date_of(timestamp).strftime("%d %b %Y").lstrip("0")
 
 
 def login_required(view):
@@ -173,8 +181,9 @@ def register():
         confirmed_adult = 1 if request.form.get("confirmed_adult") == "yes" else 0
 
         errors = []
-        if not 3 <= len(username) <= 30:
-            errors.append("Username must be 3 to 30 characters.")
+        if not USERNAME_PATTERN.match(username):
+            errors.append("Username must be 3 to 30 characters, using only letters, "
+                          "numbers, _ and -.")
         if "@" not in email:
             errors.append("Please enter a valid email address.")
         if len(password) < 8:
@@ -190,6 +199,7 @@ def register():
             user_id = db.create_user(username, email, generate_password_hash(password),
                                      confirmed_adult)
         except sqlite3.IntegrityError:
+            # Usernames are compared without capitals, so "Aoife" blocks "aoife".
             flash("That username or email is already taken.", "error")
             return render_template("register.html", form=request.form)
 
@@ -205,10 +215,18 @@ def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+        # Stop password guessing: after 5 wrong attempts, wait 15 minutes.
+        if db.is_login_locked(email):
+            flash("Too many wrong attempts. Please wait "
+                  + str(db.LOGIN_LOCK_MINUTES) + " minutes and try again.", "error")
+            return render_template("login.html", form=request.form), 429
         user = db.get_user_by_email(email)
         if user is None or not check_password_hash(user["password_hash"], password):
+            if email:
+                db.record_failed_login(email)
             flash("Wrong email or password.", "error")
             return render_template("login.html", form=request.form)
+        db.clear_failed_logins(email)
         session.clear()
         session["user_id"] = user["id"]
         return redirect(url_for("home"))
@@ -246,11 +264,26 @@ def edit_profile():
         **dropdowns())
 
 
+def photo_extension(upload):
+    """Look at the first bytes of the file to see what it really is.
+    Returns '.png' or '.jpg', or None if it isn't a real PNG or JPEG,
+    whatever its file name says."""
+    if os.path.splitext(upload.filename)[1].lower() not in PHOTO_TYPES:
+        return None
+    start = upload.stream.read(8)
+    upload.stream.seek(0)          # rewind so the whole file is saved
+    if start.startswith(PNG_START):
+        return ".png"
+    if start.startswith(JPEG_START):
+        return ".jpg"
+    return None
+
+
 def save_photo(upload):
     """Save an uploaded photo with a random file name. Returns the name,
-    or None if the file isn't a JPG or PNG."""
-    extension = os.path.splitext(upload.filename)[1].lower()
-    if extension not in PHOTO_TYPES:
+    or None if the file isn't really a JPG or PNG."""
+    extension = photo_extension(upload)
+    if extension is None:
         return None
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     name = secrets.token_hex(12) + extension
@@ -284,7 +317,7 @@ def save_profile():
     if upload and upload.filename:
         new_photo = save_photo(upload)
         if new_photo is None:
-            flash("Photos must be JPG or PNG.", "error")
+            flash("Photos must be a real JPG or PNG image.", "error")
             return redirect(url_for("edit_profile"))
         photo = new_photo
     elif form.get("remove_photo") == "yes":
@@ -353,8 +386,16 @@ def posts():
 @app.route("/posts/new")
 @login_required
 def new_post():
-    return render_template("post_new.html", form={}, today=date.today().isoformat(),
-                           last_day=(date.today() + timedelta(days=30)).isoformat(), **dropdowns())
+    return new_post_page({})
+
+
+def new_post_page(form):
+    """The new-post form. The date picker allows tomorrow up to 30 days ahead, in Irish dates."""
+    today = irish_time.today()
+    return render_template("post_new.html", form=form,
+                           first_day=(today + timedelta(days=1)).isoformat(),
+                           last_day=(today + timedelta(days=db.POST_LIFETIME_DAYS)).isoformat(),
+                           **dropdowns())
 
 
 @app.route("/posts", methods=["POST"])
@@ -380,7 +421,9 @@ def create_post():
     if not instrument_ids:
         errors.append("Choose at least one instrument you are looking for.")
 
-    # Optional expiry date. Posts last 30 days at most (that is also the default).
+    # Optional expiry date, picked as an Irish date. The post ends at 23:59:59
+    # Irish time that day, saved in the database as UTC like every other time.
+    # Posts last 30 days at most (that is also the default).
     expires_at = None
     chosen = blank_to_none(form.get("expires_on"))
     if chosen:
@@ -388,28 +431,26 @@ def create_post():
             chosen_day = date.fromisoformat(chosen)
         except ValueError:
             chosen_day = None
-        if chosen_day is None or chosen_day <= date.today():
+        today = irish_time.today()
+        if chosen_day is None or chosen_day <= today:
             errors.append("The expiry date must be after today.")
-        elif chosen_day > date.today() + timedelta(days=30):
+        elif chosen_day > today + timedelta(days=30):
             errors.append("Posts can last 30 days at most.")
-        elif chosen_day < date.today() + timedelta(days=30):
-            expires_at = chosen + " 23:59:59"
-        # Choosing exactly 30 days from today uses the default (30 days from now).
+        else:
+            expires_at = irish_time.end_of_day_utc(chosen_day)
+            if expires_at > db.add_days(db.now(), db.POST_LIFETIME_DAYS):
+                expires_at = None   # the last allowed day: use the default, exactly 30 days
 
     if errors:
         for message in errors:
             flash(message, "error")
-        return render_template("post_new.html", form=form, today=date.today().isoformat(),
-                               last_day=(date.today() + timedelta(days=30)).isoformat(),
-                               **dropdowns()), 400
+        return new_post_page(form), 400
     try:
         post_id = db.create_post(g.user["id"], title, description, county_id, commitment,
                                  instrument_ids, genre_ids, expires_at)
     except sqlite3.IntegrityError:
         flash("That post couldn't be saved. Please check the county, instruments and genres.", "error")
-        return render_template("post_new.html", form=form, today=date.today().isoformat(),
-                               last_day=(date.today() + timedelta(days=30)).isoformat(),
-                               **dropdowns()), 400
+        return new_post_page(form), 400
     flash("Your post is live for up to 30 days.", "success")
     return redirect(url_for("post_detail", post_id=post_id))
 

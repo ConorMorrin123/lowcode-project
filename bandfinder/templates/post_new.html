@@ -45,7 +45,7 @@
         </div>
         <div>
           <label for="expires_on">Expires on <span class="muted small">(optional, max 30 days)</span></label>
-          <input id="expires_on" name="expires_on" type="date" min="{{ today }}" max="{{ last_day }}" value="{{ form.get('expires_on', '') }}">
+          <input id="expires_on" name="expires_on" type="date" min="{{ first_day }}" max="{{ last_day }}" value="{{ form.get('expires_on', '') }}">
         </div>
       </div>
 

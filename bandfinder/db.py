@@ -21,6 +21,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 POST_LIFETIME_DAYS = 30   # posts expire after 30 days (the default and the maximum)
 SUGGESTION_COUNT = 3      # how many posts "Suggested for you" shows
+LOGIN_ATTEMPT_LIMIT = 5   # wrong passwords allowed for one email...
+LOGIN_LOCK_MINUTES = 15   # ...within this many minutes, before logging in is blocked
 
 
 # ---------------------------------------------------------------- basics
@@ -44,6 +46,12 @@ def add_days(timestamp, days):
     """Add a number of days to a 'YYYY-MM-DD HH:MM:SS' timestamp."""
     moment = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
     return (moment + timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def minutes_ago(minutes):
+    """The time (UTC) a number of minutes ago, in the same text format as now()."""
+    moment = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+    return moment.strftime("%Y-%m-%d %H:%M:%S")
 
 
 # -------------------------------------------------------- dropdown lists
@@ -158,6 +166,46 @@ def delete_user(user_id):
     conn = get_connection()
     try:
         conn.execute("DELETE FROM user WHERE id = ?", (user_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# ------------------------------------------------- login attempt limits
+
+def count_recent_failed_logins(email):
+    """How many wrong-password attempts this email has had in the last 15 minutes."""
+    conn = get_connection()
+    try:
+        return conn.execute(
+            "SELECT COUNT(*) FROM login_attempt WHERE email = ? AND attempted_at > ?",
+            (email, minutes_ago(LOGIN_LOCK_MINUTES))).fetchone()[0]
+    finally:
+        conn.close()
+
+
+def is_login_locked(email):
+    return count_recent_failed_logins(email) >= LOGIN_ATTEMPT_LIMIT
+
+
+def record_failed_login(email):
+    """Save one wrong attempt, and tidy away attempts older than a day."""
+    conn = get_connection()
+    try:
+        conn.execute("INSERT INTO login_attempt (email, attempted_at) VALUES (?, ?)",
+                     (email, now()))
+        conn.execute("DELETE FROM login_attempt WHERE attempted_at < ?",
+                     (minutes_ago(24 * 60),))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def clear_failed_logins(email):
+    """After a successful login, forget that email's wrong attempts."""
+    conn = get_connection()
+    try:
+        conn.execute("DELETE FROM login_attempt WHERE email = ?", (email,))
         conn.commit()
     finally:
         conn.close()

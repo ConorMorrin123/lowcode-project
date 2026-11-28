@@ -363,3 +363,110 @@ Run all the tests with:
 ### Short version
 
 Built the Band Finder website: `app.py` (all routes), 13 templates, CSS with a dark/light toggle, `make_admin.py`, and 23 page tests (73 in total, all passing). Checked in the browser with demo data, including on mobile. Not done: photo upload test, CSRF protection, pytest run, commit.
+
+---
+
+## Prompt 14
+
+> Track this in the ai-usage doc.
+>
+> Fix theses found issues:
+> | 1 | app.py:176 | Usernames can contain `/`, which breaks that user's profile page | signed up as `a/b`, then `/user/a/b` gave 404 | Fix |
+> | 2 | app.py:176 | Usernames that differ only in capitals are both allowed, so someone could pretend to be another user | created both `Aoife` and `aoife` | Fix |
+> | 4 | app.py:253 | Photos are checked by file extension only, not by what's inside the file | by reading the code; low risk because files are served as images | Fix |
+> | 5 | app.py:204 | No limit on wrong login attempts, so passwords can be guessed again and again | yes, by reading the code | Fix |
+
+### Claude's full answer
+
+I've fixed all four issues from the Week 3 review. All 89 tests pass: 73 old and 16 new.
+
+**1. Usernames with `/` (or other odd characters)**
+Usernames may now only use letters, numbers, `_` and `-` (still 3–30 characters).
+- **App:** the sign-up form checks this and shows a friendly message. The username box also tells you the rule.
+- **Database:** two triggers in a new migration refuse any other characters, even if the app has a bug.
+
+**2. Usernames that differ only in capitals**
+The database now treats "Aoife" and "aoife" as the same username, using a "no case" unique index. Signing up as `aoife` when `Aoife` exists shows "That username or email is already taken."
+
+**4. Photos checked by name only**
+The app now looks at the first bytes inside the file. Every real PNG and JPEG starts with a known "signature". A file that isn't really an image is refused with "Photos must be a real JPG or PNG image", whatever it's called. The saved file gets the extension of what it really is (a JPEG named `.png` is saved as `.jpg`).
+
+**5. No limit on login attempts**
+Wrong passwords are now recorded in a new `login_attempt` table (in the database, not in Python memory, as AGENTS.md requires). After 5 wrong attempts for one email within 15 minutes, logging in with that email is blocked, even with the right password, until the 15 minutes pass. A successful login clears the count.
+
+**Files changed**
+- New: `bandfinder/schema/002_username_rules_and_login_limits.sql` (I didn't edit `001`, because it has already been applied).
+- `bandfinder/app.py`: username rule, login limit, photo check.
+- `bandfinder/db.py`: four login-attempt functions.
+- `bandfinder/templates/register.html`: username hint and pattern.
+- `bandfinder/tests/`: 16 new tests (username characters and capitals, login lockout, fake vs real photos).
+- `bandfinder/docs/data-model.md` and `docs2/bandfinder-specification.md`: updated to match.
+
+**How I checked it**
+- Ran all 89 tests. The photo tests save into a temporary folder, not `static/uploads/`.
+- In the browser: 5 wrong passwords gave "Wrong email or password" and the 6th was blocked (status 429). The sign-up page shows the new username hint.
+
+**What you need to do**
+- If you already have a `bandfinder/app.db`, update it with:
+  `python tools/migrate.py bandfinder/app.db --schema bandfinder/schema`
+  If it already has two usernames that differ only in capitals, the migration stops and changes nothing. Rename one of them first.
+- Nothing is committed. `docs2/week03-review.md` is unchanged, so you can fill in its Action column and "What I fixed" yourself.
+
+**Decisions I made that you did not specify**
+- Allowed characters: letters, numbers, `_` and `-`.
+- Login limit: **5 wrong attempts per email in 15 minutes**, and the block applies even to the right password.
+- Attempts are counted per email (not per computer/IP address), including emails that don't exist. Rows older than a day are deleted automatically.
+- A blocked login returns status 429 ("Too Many Requests").
+- Used database triggers for the username characters, because SQLite can't add a CHECK rule to an existing table without rebuilding it.
+- The `login_attempt` table stores the email as text with no link to `user`, so no delete rule was needed.
+- Photos are checked by their first bytes (PNG/JPEG signature). This doesn't check the whole image is valid.
+- Profile web addresses still match the username exactly, with capitals: `/user/Aoife` works, `/user/aoife` gives 404.
+
+### Short version
+
+Fixed review items 1, 2, 4 and 5: usernames are limited to letters, numbers, `_` and `-`, and are unique ignoring capitals (migration `002` triggers + index); photos are checked by their real file signature; 5 wrong logins in 15 minutes blocks that email (new `login_attempt` table). 16 new tests, 89 passing, checked in the browser. Not committed.
+
+---
+
+## Prompt 15
+
+> Fix this issue too: | 3 | app.py:396, db.py:37 | Mixes local time (`date.today()`) and UTC (`db.now()`), so expiry times and dates can be an hour out during Irish summer time | partly — by reading the code; only matters near midnight in summer | Fix |
+
+### Claude's full answer
+
+Fixed. All 100 tests pass (89 old and 11 new).
+
+**The rule now:** the database always stores times in **UTC**, and anything a person sees or picks is in **Irish time**. A new file, `bandfinder/irish_time.py`, does every conversion between the two, so they can't get mixed up again.
+
+**Why a new file instead of a library:** Python's built-in time zone feature (`zoneinfo`) has no time zone data on Windows unless you install an extra package (`tzdata`). Ireland's rule is short, so I wrote it out instead:
+- Winter: Irish time = UTC.
+- Summer: Irish time = UTC + 1 hour, from 01:00 UTC on the last Sunday of March to 01:00 UTC on the last Sunday of October.
+
+**What changed in `app.py`**
+- "Today" for the new-post date picker and the expiry checks is now **today in Ireland**, not the server's clock.
+- A chosen expiry date now ends at **23:59:59 Irish time** that day, converted to UTC before it's saved. Before, it saved 23:59:59 UTC, which in summer is 00:59 the next morning in Ireland.
+- Dates on pages ("28 Nov 2026") are shown as the **Irish date**. Before, a post made at 00:30 Irish time in summer showed the previous day.
+- The date picker now starts at **tomorrow**, since today was never allowed anyway.
+- The three copies of the new-post form code are now one helper, `new_post_page()`.
+
+**Tests (`bandfinder/tests/test_irish_time.py`, 11 new)**
+- the exact start and end of summer time in 2026
+- a summer evening in UTC that's already the next day in Ireland
+- end of an Irish day in UTC, in summer and in winter
+- dates shown on pages
+- a post's expiry saved at Irish midnight
+- the 30-day maximum still holds, and today is refused
+
+**Checked in the browser:** the new-post date picker allows 29 Nov to 28 Dec 2026, and post dates display correctly.
+
+Not committed.
+
+**Decisions I made that you did not specify**
+- Times stay stored in UTC; only what people see and pick is in Irish time.
+- Wrote the Irish summer-time rule myself instead of adding the `tzdata` library. If the EU ever changes the rule, `irish_time.py` would need updating.
+- Picking the very last allowed day (30 days ahead) uses the default "exactly 30 days from now", so the post never goes past the database's 30-day limit.
+- The date picker's first day is tomorrow (it was today, which was then refused).
+
+### Short version
+
+Fixed review item 3: new `bandfinder/irish_time.py` converts between UTC (stored) and Irish time (shown and picked), with summer time written out by hand (no extra library). Expiry dates now end at Irish midnight and pages show Irish dates. 11 new tests, 100 passing, checked in the browser. Not committed.

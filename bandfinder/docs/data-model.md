@@ -12,7 +12,7 @@ Dropdown values are stored as the text the user sees (for example `'Original ban
 | Column | Required? | Rules |
 |---|---|---|
 | id | yes | primary key |
-| username | yes | UNIQUE, 3–30 characters |
+| username | yes | UNIQUE ignoring capitals ("Aoife" = "aoife"), 3–30 characters, only letters, numbers, `_` and `-` (since `002`) |
 | email | yes | UNIQUE, must contain `@`, never shown to other users |
 | password_hash | yes | the password is stored hashed, never as plain text |
 | is_admin | yes | CHECK 0 or 1, default 0 |
@@ -108,6 +108,24 @@ Primary key (post_id, genre_id).
 | created_at | yes | default: now |
 
 CHECK reporter_id is not the same as reported_user_id: nobody can report themselves.
+
+### login_attempt (since `002_username_rules_and_login_limits.sql`)
+One row per wrong password, used to stop password guessing.
+| Column | Required? | Rules |
+|---|---|---|
+| id | yes | primary key |
+| email | yes | the email typed in, 1–320 characters. Not a foreign key, so attempts on emails that don't exist are counted too |
+| attempted_at | yes | default: now (UTC) |
+
+After 5 wrong attempts for one email within 15 minutes, logging in with that email is blocked
+until the 15 minutes pass. A successful login deletes that email's rows. Rows older than a day
+are tidied away.
+
+### Changes made by `002_username_rules_and_login_limits.sql`
+SQLite can't add a CHECK rule to an existing table, so:
+- A UNIQUE index on `username COLLATE NOCASE` blocks usernames that differ only in capitals.
+- Two triggers (on INSERT and on UPDATE of username) refuse usernames with characters other
+  than letters, numbers, `_` and `-`. They act like a CHECK rule.
 
 ## Relationships
 - A user plays many instruments, each at its own skill level (user_instrument), and likes many genres (user_genre).

@@ -37,7 +37,7 @@ Commitment and Project type are two separate dropdowns.
 
 ### User
 - UserID (integer, primary key)
-- Username (text, required, unique, 3–30 characters)
+- Username (text, required, unique ignoring capitals, 3–30 characters, only letters, numbers, _ and -)
 - Email (text, required, unique, never shown publicly)
 - PasswordHash (text, required, the password is stored hashed, never as plain text)
 - IsAdmin (integer, required, 0 or 1, default 0)
@@ -148,6 +148,10 @@ Report.ReportedUserID are allowed to be empty (NULL). An empty value means "Dele
 
 ## Business rules
 - Users must tick "I am 18 or over" to sign up.
+- After 5 wrong passwords for one email within 15 minutes, that email can't log in until the
+  15 minutes are up (stored in the login_attempt table).
+- Profile photos must really be PNG or JPEG files (checked by looking inside the file, not just
+  at its name).
 - Username and email must each be unique.
 - Only the logged-in user can edit their own profile and delete their own posts and comments.
 - A post expires 30 days after it is created by default. The poster may choose an earlier date,

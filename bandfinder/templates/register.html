@@ -4,8 +4,9 @@
   <section class="card narrow">
     <h1>Create your account</h1>
     <form method="post" action="{{ url_for('register') }}" class="form">
-      <label for="username">Username <span class="muted small">(3–30 characters, shown on your profile)</span></label>
-      <input id="username" name="username" required minlength="3" maxlength="30" value="{{ form.get('username', '') }}" autocomplete="username">
+      <label for="username">Username <span class="muted small">(3–30 letters, numbers, _ or -, shown on your profile)</span></label>
+      <input id="username" name="username" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_\-]{3,30}"
+             title="3 to 30 letters, numbers, _ or -" value="{{ form.get('username', '') }}" autocomplete="username">
 
       <label for="email">Email <span class="muted small">(never shown to other users)</span></label>
       <input id="email" name="email" type="email" required value="{{ form.get('email', '') }}" autocomplete="email">

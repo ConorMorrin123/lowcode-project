@@ -5,6 +5,7 @@ Each test gets a brand-new temporary database, never the real bandfinder/app.db.
 Run from the lowcode-project folder:
     .venv\\Scripts\\python.exe -m unittest discover -s bandfinder/tests -v
 """
+import io
 import os
 import sys
 import unittest
@@ -18,6 +19,7 @@ os.environ.setdefault("SECRET_KEY", "test-only-not-a-real-secret")
 from test_constraints import DatabaseTestCase  # noqa: E402  (temp database set-up)
 
 import db       # noqa: E402
+import app as app_module  # noqa: E402
 from app import app  # noqa: E402
 
 
@@ -103,6 +105,74 @@ class TestSignUp(AppTestCase):
         self.log_out()
         page = self.client.post("/login", data={"email": "aoife@example.com", "password": "nope"})
         self.assertIn(b"Wrong email or password", page.data)
+
+
+class TestReviewFixes(AppTestCase):
+    """Week 3 review fixes (docs2/week03-review.md)."""
+
+    def setUp(self):
+        super().setUp()
+        # Save test photos in the temp folder, never in bandfinder/static/uploads.
+        self.old_upload_folder = app_module.UPLOAD_FOLDER
+        app_module.UPLOAD_FOLDER = os.path.join(self.folder, "uploads")
+
+    def tearDown(self):
+        app_module.UPLOAD_FOLDER = self.old_upload_folder
+        super().tearDown()
+
+    def test_username_with_slash_is_refused_with_a_message(self):
+        page = self.sign_up("a/b")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b"only letters", page.data)
+        self.assertIsNone(db.get_user_by_username("a/b"))
+
+    def test_username_differing_only_in_capitals_is_refused(self):
+        self.sign_up("Aoife")
+        self.log_out()
+        page = self.sign_up("aoife")
+        self.assertIn(b"already taken", page.data)
+        self.assertIsNone(db.get_user_by_username("aoife"))
+
+    def upload(self, filename, content):
+        return self.client.post("/me", data={"photo": (io.BytesIO(content), filename)},
+                                content_type="multipart/form-data", follow_redirects=True)
+
+    def test_fake_photo_is_refused(self):
+        self.log_in_as_new_user()
+        page = self.upload("evil.png", b"<html><script>alert(1)</script></html>")
+        self.assertIn(b"real JPG or PNG", page.data)
+        self.assertIsNone(db.get_user_by_username("aoife")["photo_path"])
+
+    def test_real_png_is_accepted(self):
+        self.log_in_as_new_user()
+        self.upload("me.png", app_module.PNG_START + b"rest of the image")
+        photo = db.get_user_by_username("aoife")["photo_path"]
+        self.assertTrue(photo.endswith(".png"))
+        self.assertTrue(os.path.exists(os.path.join(app_module.UPLOAD_FOLDER, photo)))
+
+    def test_jpeg_named_png_is_saved_as_jpg(self):
+        self.log_in_as_new_user()
+        self.upload("me.png", app_module.JPEG_START + b"rest of the image")
+        self.assertTrue(db.get_user_by_username("aoife")["photo_path"].endswith(".jpg"))
+
+    def test_login_blocked_after_five_wrong_passwords(self):
+        self.sign_up("aoife")
+        self.log_out()
+        for _ in range(5):
+            self.client.post("/login", data={"email": "aoife@example.com", "password": "wrong"})
+        # Even the right password is refused until the 15 minutes are up.
+        page = self.client.post("/login", data={"email": "aoife@example.com",
+                                                "password": "password123"})
+        self.assertEqual(page.status_code, 429)
+        self.assertIn(b"Too many wrong attempts", page.data)
+
+    def test_successful_login_clears_wrong_attempts(self):
+        self.sign_up("aoife")
+        self.log_out()
+        for _ in range(4):
+            self.client.post("/login", data={"email": "aoife@example.com", "password": "wrong"})
+        self.client.post("/login", data={"email": "aoife@example.com", "password": "password123"})
+        self.assertEqual(db.count_recent_failed_logins("aoife@example.com"), 0)
 
 
 class TestProfile(AppTestCase):

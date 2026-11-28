@@ -247,6 +247,58 @@ class TestCheckRules(DatabaseTestCase):
             self.run_sql("UPDATE comment SET removed_by_admin = 1 WHERE id = ?", (comment,))
 
 
+class TestUsernameRules(DatabaseTestCase):
+    """Week 3 review fixes, added in 002_username_rules_and_login_limits.sql."""
+
+    def test_username_with_a_slash_is_rejected(self):
+        with self.assertRaises(sqlite3.IntegrityError):
+            db.create_user("a/b", "ab@example.com", "hash", 1)
+
+    def test_username_with_a_space_is_rejected(self):
+        with self.assertRaises(sqlite3.IntegrityError):
+            db.create_user("a b", "ab@example.com", "hash", 1)
+
+    def test_changing_a_username_to_bad_characters_is_rejected(self):
+        user = self.make_user("aoife")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.run_sql("UPDATE user SET username = 'aoife!' WHERE id = ?", (user,))
+
+    def test_same_username_with_different_capitals_is_rejected(self):
+        self.make_user("Aoife")
+        with self.assertRaises(sqlite3.IntegrityError):
+            db.create_user("aoife", "other@example.com", "hash", 1)
+
+    def test_letters_numbers_underscore_and_dash_are_allowed(self):
+        self.assertIsNotNone(db.create_user("Dub_Drummer-99", "d@example.com", "hash", 1))
+
+
+class TestLoginAttempts(DatabaseTestCase):
+
+    def test_attempt_without_email_is_rejected(self):
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.run_sql("INSERT INTO login_attempt (email) VALUES (NULL)")
+
+    def test_locked_after_five_wrong_attempts(self):
+        for _ in range(4):
+            db.record_failed_login("aoife@example.com")
+        self.assertFalse(db.is_login_locked("aoife@example.com"))
+        db.record_failed_login("aoife@example.com")
+        self.assertTrue(db.is_login_locked("aoife@example.com"))
+        self.assertFalse(db.is_login_locked("someone-else@example.com"))
+
+    def test_old_attempts_do_not_count(self):
+        for _ in range(5):
+            self.run_sql("INSERT INTO login_attempt (email, attempted_at) VALUES (?, ?)",
+                         ("aoife@example.com", db.minutes_ago(16)))
+        self.assertFalse(db.is_login_locked("aoife@example.com"))
+
+    def test_clearing_attempts_unlocks(self):
+        for _ in range(5):
+            db.record_failed_login("aoife@example.com")
+        db.clear_failed_logins("aoife@example.com")
+        self.assertFalse(db.is_login_locked("aoife@example.com"))
+
+
 class TestMissingRequiredFields(DatabaseTestCase):
 
     def test_user_without_password_is_rejected(self):
